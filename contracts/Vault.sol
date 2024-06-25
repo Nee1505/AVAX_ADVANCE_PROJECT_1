@@ -15,8 +15,7 @@ interface IERC20 {
     function transferFrom(
         address sender,
         address recipient,
-        uint amount
-    ) external returns (bool);
+        uint amount) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint value);
     event Approval(address indexed owner, address indexed spender, uint value);
@@ -24,12 +23,16 @@ interface IERC20 {
 
 contract Vault {
     IERC20 public immutable token;
+    address owner=msg.sender;
+    uint reward;
 
     uint public totalSupply;
     mapping(address => uint) public balanceOf;
-
+    mapping(address => uint) public rewards; 
+ 
     constructor(address _token) {
         token = IERC20(_token);
+       
     }
 
     function _mint(address _to, uint _shares) private {
@@ -43,16 +46,6 @@ contract Vault {
     }
 
     function deposit(uint _amount) external {
-        /*
-        a = amount
-        B = balance of token before deposit
-        T = total supply
-        s = shares to mint
-
-        (T + s) / T = (a + B) / B 
-
-        s = aT / B
-        */
         uint shares;
         if (totalSupply == 0) {
             shares = _amount;
@@ -65,18 +58,23 @@ contract Vault {
     }
 
     function withdraw(uint _shares) external {
-        /*
-        a = amount
-        B = balance of token before withdraw
-        T = total supply
-        s = shares to burn
-
-        (T - s) / T = (B - a) / B 
-
-        a = sB / T
-        */
         uint amount = (_shares * token.balanceOf(address(this))) / totalSupply;
         _burn(msg.sender, _shares);
         token.transfer(msg.sender, amount);
+        
+       
+        reward = calculateReward(amount);
+        rewards[msg.sender] += reward;
+    }
+
+    function calculateReward(uint _amount) private pure returns (uint) {
+        return _amount / 100;
+    }
+
+    function redeemReward() external {
+       uint amount = rewards[msg.sender];
+       require(amount > 0, "No rewards to redeem");
+       require(token.transfer(msg.sender, amount), "Transfer failed");
+       rewards[msg.sender]= 0; 
     }
 }

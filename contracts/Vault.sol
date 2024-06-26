@@ -23,9 +23,7 @@ interface IERC20 {
 
 contract Vault {
     IERC20 public immutable token;
-    address owner=msg.sender;
     uint reward;
-
     uint public totalSupply;
     mapping(address => uint) public balanceOf;
     mapping(address => uint) public rewards; 
@@ -73,8 +71,13 @@ contract Vault {
 
     function redeemReward() external {
        uint amount = rewards[msg.sender];
-       require(amount > 0, "No rewards to redeem");
-       require(token.transfer(msg.sender, amount), "Transfer failed");
+       if(amount>0){
+        _mint(msg.sender,amount);
+       }
+       else{
+        revert("No rewards to redeem");
+       }
        rewards[msg.sender]= 0; 
     }
 }
+
